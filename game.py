@@ -1,4 +1,3 @@
-import time
 import curses
 import asyncio
 from random import randint, choice
@@ -37,7 +36,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
 
 async def animate_spaceship(canvas, row, column, rocket_frames):
-    # rocket_frames = cycle(rocket_frames)
+    rocket_frames = cycle(rocket_frames)
     while True:
         rocket_frame = next(rocket_frames)
         draw_frame(canvas, row, column, rocket_frame)
@@ -50,15 +49,8 @@ async def animate_spaceship(canvas, row, column, rocket_frames):
         frame_rows, frame_columns = get_frame_size(rocket_frame)
         height_window, width_window = curses.window.getmaxyx(canvas)
 
-        if row < 1:
-            row = 1
-        elif row + frame_rows > height_window - 1:
-            row = height_window - frame_rows - 1
-
-        if column < 1:
-            column = 1
-        elif column + frame_columns > width_window - 1:
-            column = width_window - frame_columns - 1
+        row = min(max(row + rows_direction, 1), height_window - frame_rows - 1)
+        column = min(max(column + columns_direction, 1), width_window - frame_columns - 1)
 
 
 async def blink(canvas, row, column, symbol='*'):
@@ -87,7 +79,7 @@ async def draw(canvas):
           open('animations/rocket_frame_2.txt', 'r') as file2):
         rocket_frame1 = file1.read()
         rocket_frame2 = file2.read()
-        rocket_frames = cycle([rocket_frame1, rocket_frame2])
+        rocket_frames = [rocket_frame1, rocket_frame2]
     fire_coroutine = fire(canvas, height_window / 2, width_window / 2)
     coroutines = [
         blink(
