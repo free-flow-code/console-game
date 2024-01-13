@@ -1,8 +1,23 @@
 import curses
 import asyncio
+import argparse
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
 from itertools import cycle
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description='Console wars. Simple game about space.'
+    )
+    parser.add_argument(
+        'stars',
+        help='number of stars in the background',
+        type=int,
+        nargs='?',
+        default=50
+    )
+    return parser.parse_args()
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
@@ -72,10 +87,9 @@ async def blink(canvas, row, column, offset_tics, symbol='*'):
             await asyncio.sleep(0)
 
 
-async def draw(canvas):
+async def draw(canvas, number_stars):
     height_window, width_window = curses.window.getmaxyx(canvas)
     tic_timeout = 0.1
-    number_stars = 50
     stars = '+*.:'
     height_indent = 2
     width_indent = 2
@@ -108,10 +122,13 @@ async def draw(canvas):
 
 
 def main(canvas):
+    args = parse_arguments()
+    number_stars = args.stars
+
     canvas.border()
     canvas.nodelay(True)
     curses.curs_set(False)
-    asyncio.run(draw(canvas))
+    asyncio.run(draw(canvas, number_stars))
 
 
 if __name__ == '__main__':
