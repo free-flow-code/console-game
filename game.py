@@ -74,7 +74,12 @@ async def blink(canvas, row, column, offset_tics, symbol='*'):
 
 async def draw(canvas):
     height_window, width_window = curses.window.getmaxyx(canvas)
+    tic_timeout = 0.1
+    number_stars = 50
     stars = '+*.:'
+    height_indent = 2
+    width_indent = 2
+    offset_tics = randint(1, 20)
     with (open('animations/rocket_frame_1.txt', 'r') as file1,
           open('animations/rocket_frame_2.txt', 'r') as file2):
         rocket_frame1 = file1.read()
@@ -84,11 +89,11 @@ async def draw(canvas):
     coroutines = [
         blink(
             canvas,
-            randint(1, height_window - 2),
-            randint(1, width_window - 2),
-            randint(1, 20),
+            randint(1, height_window - height_indent),
+            randint(1, width_window - width_indent),
+            offset_tics,
             choice(stars)
-        ) for _ in range(0, 50)
+        ) for _ in range(0, number_stars)
     ]
     coroutines.extend([fire_coroutine, animate_spaceship(canvas, height_window / 2, width_window / 2, rocket_frames)])
 
@@ -96,10 +101,10 @@ async def draw(canvas):
         for coroutine in coroutines.copy():
             try:
                 coroutine.send(None)
-                canvas.refresh()
             except StopIteration:
                 coroutines.remove(coroutine)
-        await asyncio.sleep(0.1)
+        canvas.refresh()
+        await asyncio.sleep(tic_timeout)
 
 
 def main(canvas):
