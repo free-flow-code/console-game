@@ -53,10 +53,10 @@ async def animate_spaceship(canvas, row, column, rocket_frames):
         column = min(max(column + columns_direction, 1), width_window - frame_columns - 1)
 
 
-async def blink(canvas, row, column, symbol='*'):
+async def blink(canvas, row, column, offset_tics, symbol='*'):
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        for _ in range(randint(0, 20)):
+        for _ in range(offset_tics):
             await asyncio.sleep(0)
 
         canvas.addstr(row, column, symbol)
@@ -86,6 +86,7 @@ async def draw(canvas):
             canvas,
             randint(1, height_window - 2),
             randint(1, width_window - 2),
+            randint(1, 20),
             choice(stars)
         ) for _ in range(0, 50)
     ]
