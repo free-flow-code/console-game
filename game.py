@@ -98,7 +98,7 @@ async def draw(canvas, number_stars):
           open('animations/rocket_frame_2.txt', 'r') as file2):
         rocket_frame1 = file1.read()
         rocket_frame2 = file2.read()
-        rocket_frames = [rocket_frame1, rocket_frame2]
+        rocket_frames = [rocket_frame1, rocket_frame1, rocket_frame2, rocket_frame2]
     fire_coroutine = fire(canvas, height_window / 2, width_window / 2)
     coroutines = [
         blink(
