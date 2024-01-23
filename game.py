@@ -55,7 +55,7 @@ async def fill_orbit_with_garbage(canvas, width_window, garbage_frames):
         await sleep(15)
 
 
-async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
+async def fire(canvas, start_row, start_column, rows_speed=-2, columns_speed=0):
     """Display animation of gun shot, direction and speed can be specified."""
 
     row, column = start_row, start_column
@@ -77,7 +77,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
     curses.beep()
 
-    while 0 < row < max_row and 0 < column < max_column:
+    while 1 < row < max_row and 0 < column < max_column:
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
@@ -85,16 +85,26 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 
+async def run_spaceship(canvas, row, column):
+    global COROUTINES
+    COROUTINES.append(fire(canvas, row, column + 2))
+
+
 async def animate_spaceship(canvas, row, column, rocket_frames):
     rocket_frames = cycle(rocket_frames)
     row_speed = column_speed = 0
+    global COROUTINES
+
     while True:
         rocket_frame = next(rocket_frames)
+        rows_direction, columns_direction, space_pressed = read_controls(canvas)
         draw_frame(canvas, row, column, rocket_frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, rocket_frame, negative=True)
 
-        rows_direction, columns_direction, _ = read_controls(canvas)
+        if space_pressed:
+            COROUTINES.append(fire(canvas, row, column + 2))
+
         row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction, columns_direction)
         row += row_speed
         column += column_speed
@@ -142,7 +152,6 @@ async def draw(canvas, number_stars):
         rocket_frame1 = file1.read()
         rocket_frame2 = file2.read()
         rocket_frames = [rocket_frame1, rocket_frame1, rocket_frame2, rocket_frame2]
-    fire_coroutine = fire(canvas, height_window / 2, width_window / 2)
     COROUTINES = [
         blink(
             canvas,
@@ -152,7 +161,7 @@ async def draw(canvas, number_stars):
             choice(stars)
         ) for _ in range(0, number_stars)
     ]
-    COROUTINES.extend([fire_coroutine, animate_spaceship(canvas, height_window / 2, width_window / 2, rocket_frames)])
+    COROUTINES.append(animate_spaceship(canvas, height_window / 2, width_window / 2, rocket_frames))
 
     garbage_frames = []
     for file in garbage_files:
