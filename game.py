@@ -3,10 +3,12 @@ import asyncio
 import argparse
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
+from obstacles import Obstacle, show_obstacles
 from physics import update_speed
 from itertools import cycle
 
 COROUTINES = []
+OBSTACLES = []
 
 
 def parse_arguments():
@@ -37,12 +39,20 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     column = min(column, columns_number - frame_columns - 1)
 
     row = 1
+    global OBSTACLES, COROUTINES
 
-    while row < rows_number:
-        draw_frame(canvas, row, column, garbage_frame)
-        await asyncio.sleep(0)
-        draw_frame(canvas, row, column, garbage_frame, negative=True)
-        row += speed
+    new_obstacle = Obstacle(row, column, frame_rows, frame_columns)
+    OBSTACLES.append(new_obstacle)
+
+    try:
+        while row < rows_number:
+            draw_frame(canvas, row, column, garbage_frame)
+            await asyncio.sleep(0)
+            draw_frame(canvas, row, column, garbage_frame, negative=True)
+            row += speed
+            new_obstacle.row = row
+    finally:
+        OBSTACLES.remove(new_obstacle)
 
 
 async def fill_orbit_with_garbage(canvas, width_window, garbage_frames):
@@ -169,6 +179,7 @@ async def draw(canvas, number_stars):
             frame = garbage_file.read()
         garbage_frames.append(frame)
     COROUTINES.append(fill_orbit_with_garbage(canvas, width_window, garbage_frames))
+    COROUTINES.append(show_obstacles(canvas, OBSTACLES))
 
     while True:
         for coroutine in COROUTINES.copy():
