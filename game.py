@@ -22,12 +22,18 @@ def parse_arguments():
     return parser.parse_args()
 
 
+async def sleep(tics):
+    for _ in range(tics):
+        await asyncio.sleep(0)
+
+
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
     rows_number, columns_number = canvas.getmaxyx()
+    frame_rows, frame_columns = get_frame_size(garbage_frame)
 
     column = max(column, 2)
-    column = min(column, columns_number - 2)
+    column = min(column, columns_number - frame_columns - 1)
 
     row = 1
 
@@ -42,12 +48,10 @@ async def fill_orbit_with_garbage(canvas, width_window, garbage_frames):
     while True:
         global COROUTINES
         garbage_frame = choice(garbage_frames)
-        frame_rows, frame_columns = get_frame_size(garbage_frame)
-        column = randint(1, width_window - frame_columns)
+        column = randint(1, width_window)
         garbage_coroutine = fly_garbage(canvas, column, garbage_frame)
         COROUTINES.append(garbage_coroutine)
-        for _ in range(15):
-            await asyncio.sleep(0)
+        await sleep(15)
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
@@ -101,20 +105,16 @@ async def animate_spaceship(canvas, row, column, rocket_frames):
 async def blink(canvas, row, column, offset_tics, symbol='*'):
     while True:
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        for _ in range(offset_tics):
-            await asyncio.sleep(0)
+        await sleep(offset_tics)
 
         canvas.addstr(row, column, symbol)
-        for _ in range(0, 3):
-            await asyncio.sleep(0)
+        await sleep(3)
 
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        for _ in range(0, 5):
-            await asyncio.sleep(0)
+        await sleep(5)
 
         canvas.addstr(row, column, symbol)
-        for _ in range(0, 3):
-            await asyncio.sleep(0)
+        await sleep(3)
 
 
 async def draw(canvas, number_stars):
