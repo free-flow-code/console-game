@@ -3,6 +3,7 @@ import asyncio
 import argparse
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
+from physics import update_speed
 from itertools import cycle
 
 COROUTINES = []
@@ -22,7 +23,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-async def sleep(tics):
+async def sleep(tics=1):
     for _ in range(tics):
         await asyncio.sleep(0)
 
@@ -86,6 +87,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
 async def animate_spaceship(canvas, row, column, rocket_frames):
     rocket_frames = cycle(rocket_frames)
+    row_speed = column_speed = 0
     while True:
         rocket_frame = next(rocket_frames)
         draw_frame(canvas, row, column, rocket_frame)
@@ -93,8 +95,9 @@ async def animate_spaceship(canvas, row, column, rocket_frames):
         draw_frame(canvas, row, column, rocket_frame, negative=True)
 
         rows_direction, columns_direction, _ = read_controls(canvas)
-        row += rows_direction
-        column += columns_direction
+        row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction, columns_direction)
+        row += row_speed
+        column += column_speed
         frame_rows, frame_columns = get_frame_size(rocket_frame)
         height_window, width_window = curses.window.getmaxyx(canvas)
 
