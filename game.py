@@ -9,6 +9,7 @@ from itertools import cycle
 
 COROUTINES = []
 OBSTACLES = []
+OBSTACLES_IN_LAST_COLLISIONS = []
 
 
 def parse_arguments():
@@ -39,13 +40,16 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     column = min(column, columns_number - frame_columns - 1)
 
     row = 1
-    global OBSTACLES, COROUTINES
+    global OBSTACLES, COROUTINES, OBSTACLES_IN_LAST_COLLISIONS
 
     new_obstacle = Obstacle(row, column, frame_rows, frame_columns)
     OBSTACLES.append(new_obstacle)
 
     try:
         while row < rows_number:
+            if new_obstacle in OBSTACLES_IN_LAST_COLLISIONS:
+                OBSTACLES_IN_LAST_COLLISIONS.remove(new_obstacle)
+                return
             draw_frame(canvas, row, column, garbage_frame)
             await asyncio.sleep(0)
             draw_frame(canvas, row, column, garbage_frame, negative=True)
@@ -86,12 +90,13 @@ async def fire(canvas, start_row, start_column, rows_speed=-2, columns_speed=0):
     max_row, max_column = rows - 1, columns - 1
 
     curses.beep()
-    global OBSTACLES
+    global OBSTACLES, OBSTACLES_IN_LAST_COLLISIONS
 
     while 1 < row < max_row and 0 < column < max_column:
         for obstacle in OBSTACLES:
             if obstacle.has_collision(row, column):
-                return 
+                OBSTACLES_IN_LAST_COLLISIONS.append(obstacle)
+                return
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
