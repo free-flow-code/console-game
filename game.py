@@ -3,6 +3,7 @@ import asyncio
 import argparse
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
+from game_scenario import PHRASES, get_garbage_delay_tics
 from obstacles import Obstacle
 from physics import update_speed
 from explosion import explode
@@ -11,6 +12,7 @@ from itertools import cycle
 COROUTINES = []
 OBSTACLES = []
 OBSTACLES_IN_LAST_COLLISIONS = []
+YEAR = 1957
 
 
 def parse_arguments():
@@ -77,12 +79,16 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
 
 async def fill_orbit_with_garbage(canvas, width_window, garbage_frames):
     while True:
-        global COROUTINES
-        garbage_frame = choice(garbage_frames)
-        column = randint(1, width_window)
-        garbage_coroutine = fly_garbage(canvas, column, garbage_frame)
-        COROUTINES.append(garbage_coroutine)
-        await sleep(15)
+        global YEAR
+        delay_tics = get_garbage_delay_tics(YEAR)
+        if delay_tics:
+            global COROUTINES
+            garbage_frame = choice(garbage_frames)
+            column = randint(1, width_window)
+            garbage_coroutine = fly_garbage(canvas, column, garbage_frame)
+            COROUTINES.append(garbage_coroutine)
+            await sleep(delay_tics)
+        await asyncio.sleep(0)
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-2, columns_speed=0):
@@ -139,14 +145,15 @@ async def animate_spaceship(canvas, row, column, rocket_frames):
         for obstacle in OBSTACLES:
             if obstacle.has_collision(row, column, frame_rows, frame_columns):
                 await explode(canvas, row + frame_rows // 2, column + frame_columns // 2)
-                await show_game_over(canvas, height_window, width_window)
+                COROUTINES.append(show_game_over(canvas, height_window, width_window))
                 return
 
         draw_frame(canvas, row, column, rocket_frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, rocket_frame, negative=True)
 
-        if space_pressed:
+        global YEAR
+        if space_pressed and YEAR >= 2020:
             COROUTINES.append(fire(canvas, row, column + 2))
 
         row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction, columns_direction)
@@ -172,6 +179,27 @@ async def blink(canvas, row, column, offset_tics, symbol='*'):
         await sleep(3)
 
 
+async def display_year(canvas, width_window):
+    global YEAR, PHRASES
+    len_year_string = 60
+    phrase = ''
+    derwin = canvas.derwin(1, len_year_string, 0, width_window - len_year_string)
+    while True:
+        if YEAR in PHRASES.keys():
+            phrase = PHRASES[YEAR]
+        derwin.clear()
+        derwin.addstr(0, 0, f'YEAR {YEAR} | {phrase}', curses.A_BOLD)
+        derwin.refresh()
+        await asyncio.sleep(0)
+
+
+async def increase_year():
+    global YEAR
+    while True:
+        await sleep(15)
+        YEAR += 1
+
+
 async def draw(canvas, number_stars):
     height_window, width_window = curses.window.getmaxyx(canvas)
     garbage_files = [
@@ -194,6 +222,7 @@ async def draw(canvas, number_stars):
         rocket_frame1 = file1.read()
         rocket_frame2 = file2.read()
         rocket_frames = [rocket_frame1, rocket_frame1, rocket_frame2, rocket_frame2]
+
     COROUTINES = [
         blink(
             canvas,
@@ -210,7 +239,14 @@ async def draw(canvas, number_stars):
         with open(f'animations/{file}', 'r') as garbage_file:
             frame = garbage_file.read()
         garbage_frames.append(frame)
-    COROUTINES.append(fill_orbit_with_garbage(canvas, width_window, garbage_frames))
+
+    COROUTINES.extend(
+        [
+            fill_orbit_with_garbage(canvas, width_window, garbage_frames),
+            increase_year(),
+            display_year(canvas, width_window)
+        ]
+    )
 
     while True:
         for coroutine in COROUTINES.copy():
