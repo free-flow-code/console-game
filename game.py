@@ -3,7 +3,7 @@ import asyncio
 import argparse
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
-from obstacles import Obstacle, show_obstacles
+from obstacles import Obstacle
 from physics import update_speed
 from explosion import explode
 from itertools import cycle
@@ -29,6 +29,20 @@ def parse_arguments():
 
 async def sleep(tics=1):
     for _ in range(tics):
+        await asyncio.sleep(0)
+
+
+async def show_game_over(canvas, height_window, width_window):
+    with open('animations/game_over.txt', 'r') as file:
+        game_over_frame = file.read()
+    game_over_frame_rows, game_over_frame_columns = get_frame_size(game_over_frame)
+    while True:
+        draw_frame(
+            canvas,
+            height_window // 2 - game_over_frame_rows // 2,
+            width_window // 2 - game_over_frame_columns // 2,
+            game_over_frame
+        )
         await asyncio.sleep(0)
 
 
@@ -114,11 +128,20 @@ async def run_spaceship(canvas, row, column):
 async def animate_spaceship(canvas, row, column, rocket_frames):
     rocket_frames = cycle(rocket_frames)
     row_speed = column_speed = 0
-    global COROUTINES
+    global OBSTACLES, COROUTINES
 
     while True:
         rocket_frame = next(rocket_frames)
         rows_direction, columns_direction, space_pressed = read_controls(canvas)
+        frame_rows, frame_columns = get_frame_size(rocket_frame)
+        height_window, width_window = curses.window.getmaxyx(canvas)
+
+        for obstacle in OBSTACLES:
+            if obstacle.has_collision(row, column, frame_rows, frame_columns):
+                await explode(canvas, row + frame_rows // 2, column + frame_columns // 2)
+                await show_game_over(canvas, height_window, width_window)
+                return
+
         draw_frame(canvas, row, column, rocket_frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, rocket_frame, negative=True)
@@ -129,8 +152,6 @@ async def animate_spaceship(canvas, row, column, rocket_frames):
         row_speed, column_speed = update_speed(row_speed, column_speed, rows_direction, columns_direction)
         row += row_speed
         column += column_speed
-        frame_rows, frame_columns = get_frame_size(rocket_frame)
-        height_window, width_window = curses.window.getmaxyx(canvas)
 
         row = min(max(row + rows_direction, 1), height_window - frame_rows - 1)
         column = min(max(column + columns_direction, 1), width_window - frame_columns - 1)
@@ -182,7 +203,7 @@ async def draw(canvas, number_stars):
             choice(stars)
         ) for _ in range(0, number_stars)
     ]
-    COROUTINES.append(animate_spaceship(canvas, height_window / 2, width_window / 2, rocket_frames))
+    COROUTINES.append(animate_spaceship(canvas, height_window // 2, width_window // 2, rocket_frames))
 
     garbage_frames = []
     for file in garbage_files:
