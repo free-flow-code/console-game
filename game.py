@@ -86,8 +86,12 @@ async def fire(canvas, start_row, start_column, rows_speed=-2, columns_speed=0):
     max_row, max_column = rows - 1, columns - 1
 
     curses.beep()
+    global OBSTACLES
 
     while 1 < row < max_row and 0 < column < max_column:
+        for obstacle in OBSTACLES:
+            if obstacle.has_collision(row, column):
+                return 
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
