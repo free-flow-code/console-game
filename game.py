@@ -5,6 +5,7 @@ from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
 from obstacles import Obstacle, show_obstacles
 from physics import update_speed
+from explosion import explode
 from itertools import cycle
 
 COROUTINES = []
@@ -49,6 +50,7 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         while row < rows_number:
             if new_obstacle in OBSTACLES_IN_LAST_COLLISIONS:
                 OBSTACLES_IN_LAST_COLLISIONS.remove(new_obstacle)
+                await explode(canvas, row + frame_rows // 2, column + frame_columns // 2)
                 return
             draw_frame(canvas, row, column, garbage_frame)
             await asyncio.sleep(0)
@@ -188,7 +190,6 @@ async def draw(canvas, number_stars):
             frame = garbage_file.read()
         garbage_frames.append(frame)
     COROUTINES.append(fill_orbit_with_garbage(canvas, width_window, garbage_frames))
-    COROUTINES.append(show_obstacles(canvas, OBSTACLES))
 
     while True:
         for coroutine in COROUTINES.copy():
