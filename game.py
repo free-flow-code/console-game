@@ -1,6 +1,8 @@
 import curses
 import asyncio
 import argparse
+from os import listdir
+from os.path import isfile, join
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
 from game_scenario import PHRASES, get_garbage_delay_tics
@@ -202,14 +204,8 @@ async def increase_year():
 
 async def draw(canvas, number_stars):
     height_window, width_window = curses.window.getmaxyx(canvas)
-    garbage_files = [
-        'duck.txt',
-        'hubble.txt',
-        'lamp.txt',
-        'trash_large.txt',
-        'trash_small.txt',
-        'trash_xl.txt'
-    ]
+    garbage_filepath = 'animations/garbage'
+    garbage_files = [file for file in listdir(garbage_filepath) if isfile(join(garbage_filepath, file))]
     tic_timeout = 0.1
     stars = '+*.:'
     height_indent = 2
@@ -236,7 +232,7 @@ async def draw(canvas, number_stars):
 
     garbage_frames = []
     for file in garbage_files:
-        with open(f'animations/{file}', 'r') as garbage_file:
+        with open(f'{garbage_filepath}/{file}', 'r') as garbage_file:
             frame = garbage_file.read()
         garbage_frames.append(frame)
 
